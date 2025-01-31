@@ -50,6 +50,7 @@ void motion () {
 
 void setup_gyro () {
   // Try to initialize!
+  Wire.setPins(D4,D5);
   if (!mpu.begin())
   {
     Serial.println("Failed to find MPU6050 chip");
@@ -90,7 +91,7 @@ void setup_gyro_int() {
 
 //  esp_sleep_enable_gpio_wakeup();
 //  gpio_wakeup_enable(GYRO_INT, GPIO_INTR_LOW_LEVEL);
-  pinMode(3, INPUT_PULLDOWN);
+  pinMode(D3, INPUT_PULLDOWN);
 
   attachInterrupt(digitalPinToInterrupt(3), motion, RISING); 
   
