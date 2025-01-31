@@ -87,7 +87,7 @@ StdRNG fast_rng;
 SimpleMeshTables tables;
 MyMesh the_mesh(*new WRAPPER_CLASS(radio, board), *new ArduinoMillis(), fast_rng, *new VolatileRTCClock(), tables);
 
-unsigned long nextAnnounce;
+unsigned long nextCheck;
 
 void halt() {
   while (1) ;
@@ -138,17 +138,27 @@ void setup() {
 
   setup_gyro();
 
-  nextAnnounce = 0;
+  nextCheck = 0;
 
 }
 
 void loop() {
-  if (the_mesh.millisHasNowPassed(nextAnnounce)) {
+  static int stalled_cycles = 0;
+  static int moving_cycles = 0;
+  static bool is_stalled = false;
+
+  if (the_mesh.millisHasNowPassed(nextCheck)) {
     char data [30] = "SENS";
 
     lecture_gyro();
     if (gyro_moved()) {
-      sprintf(data, "SENS %.2f %.2f", rot_x, rot_y);
+      if (is_stalled) {
+        is_stalled = false;
+        moving_cycles=1;
+      } else {
+        moving_cycles ++;
+      }
+      sprintf(data, "MVMT %d %d %.2f %.2f", stalled_cycles, moving_cycles, rot_x, rot_y);
       Serial.print("Sending : ");
       Serial.print(data);
       Serial.println(" to the mesh");
@@ -156,10 +166,18 @@ void loop() {
       mesh::Packet* pkt = the_mesh.createAdvert(the_mesh.self_id, (const uint8_t *)data, strlen(data));
       if (pkt) the_mesh.sendFlood(pkt);
     } else {
+      if (!is_stalled) {
+        stalled_cycles = 1;
+        is_stalled = true;
+      } else {
+        stalled_cycles ++;
+      }
       Serial.println("Gyro did not move");
+      moving_cycles = 0;
+
     }
 
-    nextAnnounce = the_mesh.futureMillis(10000);  // announce every 30 seconds (test only, don't do in production!)
+    nextCheck = the_mesh.futureMillis(10000);  // announce every 30 seconds (test only, don't do in production!)
   }
 
   the_mesh.loop();
