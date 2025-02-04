@@ -137,6 +137,7 @@ void setup() {
   Serial.println("Mesh started");
 
   setup_gyro();
+  setup_gyro_int();
 
   nextCheck = 0;
 

@@ -32,20 +32,28 @@ void lecture_gyro()
   rot_y = atan((accel_y) / sqrt(pow((accel_z), 2) + pow((accel_x), 2))) * 180 / 3.14;
 }
 
-bool gyro_moved () {
-    static float rot_x_old, rot_y_old, rot_z_old;
+volatile bool gyro_moved_flag = false;
 
-    if ((fabs(rot_x_old - rot_x) > 3) || (fabs(rot_y_old - rot_y) > 3)) {
-        rot_x_old = rot_x;
-        rot_y_old = rot_y;
-        return true;
-    } else {
-        return false;
-    }
+bool gyro_moved () {
+    // static float rot_x_old, rot_y_old, rot_z_old;
+
+    // if ((fabs(rot_x_old - rot_x) > 3) || (fabs(rot_y_old - rot_y) > 3)) {
+    //     rot_x_old = rot_x;
+    //     rot_y_old = rot_y;
+    //     return true;
+    // } else {
+    //     return false;
+    // }
+  bool f = gyro_moved_flag;
+  gyro_moved_flag = false;
+  return f;
 }
 
 void motion () {
-  Serial.println("moved");
+  if (!gyro_moved_flag) { 
+    Serial.println("moved");
+    gyro_moved_flag = true;
+  }
 }
 
 void setup_gyro () {
@@ -89,10 +97,10 @@ void setup_gyro_int() {
 
   setInterrupt(10); // set Wake on Motion Interrupt / Sensitivity; 1(highest sensitivity) - 255
 
-//  esp_sleep_enable_gpio_wakeup();
-//  gpio_wakeup_enable(GYRO_INT, GPIO_INTR_LOW_LEVEL);
+  gpio_wakeup_enable((gpio_num_t)D3, GPIO_INTR_LOW_LEVEL);
   pinMode(D3, INPUT_PULLDOWN);
+  esp_sleep_enable_gpio_wakeup();
 
-  attachInterrupt(digitalPinToInterrupt(3), motion, RISING); 
+  attachInterrupt(digitalPinToInterrupt(D3), motion, RISING); 
   
 }
